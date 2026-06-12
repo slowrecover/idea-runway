@@ -139,6 +139,12 @@
 
   <div id="list"><div class="empty">加载中…</div></div>
 
+  <div style="text-align:center;margin-top:24px;">
+    <button class="btn ghost" onclick="exportIdeas()">导出全部想法 · 找AI考古</button>
+    <p style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.7;">
+      一键复制你的所有想法+一段考古提示词,<br>粘贴给你常用的任何AI(豆包/DeepSeek/Kimi/Claude都行),<br>让它帮你看见:这些想法背后,藏着同一个什么愿望。
+    </p>
+  </div>
   <p class="footer-tip">
     候机厅 → 每周五开一次「想法法庭」<br>
     三问全过才准飞 · 起飞中最多 2 条 · 停机坪每月回看一次
@@ -307,6 +313,43 @@ function render(){
 }
 function escapeHtml(s){
   return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function exportIdeas(){
+  if(!data.ideas.length){toast('还没有想法可以考古,先去登记几个吧');return;}
+  const names={active:'起飞中(正在执行)',inbox:'候机厅(待审判)',parked:'停机坪(暂时搁置)'};
+  let listText='';
+  ['active','inbox','parked'].forEach(s=>{
+    const items=data.ideas.filter(i=>i.status===s);
+    if(items.length){
+      listText+='\n■ '+names[s]+'\n';
+      items.forEach(i=>{listText+='- ('+fmt(i.created)+') '+i.text+'\n';});
+    }
+  });
+  const prompt='【我的想法考古请求】\n'
+    +'下面是我在「想法停机坪」里记录的所有想法。请你扮演一位温和但诚实的、懂心理学的分析师,帮我做四件事:\n'
+    +'1. 聚类:哪几个想法其实是同一个愿望的不同形态?\n'
+    +'2. 命名:每一类背后,那个「想法背后的想法」是什么?\n'
+    +'3. 串联:这些想法连起来看,暴露了我内心真正想要什么、又在逃避什么?\n'
+    +'4. 收束:如果只能先做一件事,是哪件?为什么?\n'
+    +'请说人话,不要客套,不要罗列空洞建议。\n'
+    +'\n—— 我的想法清单 ——\n'+listText;
+  const done=()=>toast('已复制!粘贴给你常用的AI,开始考古');
+  const fail=()=>toast('复制失败,请截图或手动复制');
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(prompt).then(done).catch(()=>{legacyCopy(prompt)?done():fail();});
+  }else{
+    legacyCopy(prompt)?done():fail();
+  }
+}
+function legacyCopy(text){
+  try{
+    const ta=document.createElement('textarea');
+    ta.value=text;ta.style.position='absolute';ta.style.left='-9999px';
+    document.body.appendChild(ta);ta.select();
+    const ok=document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  }catch(e){return false;}
 }
 load();
 </script>
